@@ -11,11 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { airportsByCountry } from "@/lib/data"
 import { useLocation } from "@/contexts/location-context"
 import type { FlightInfo, Terminal } from "@/lib/types"
@@ -38,6 +40,7 @@ export function AirportSelector() {
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | undefined>(undefined)
   const [timeWarning, setTimeWarning] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const isMobile = useIsMobile()
 
   const handleCountrySelect = (country: string) => {
     setSelectedCountry(country)
@@ -110,178 +113,211 @@ export function AirportSelector() {
 
   const availableAirports = selectedCountry ? airportsByCountry[selectedCountry] || [] : []
 
-  return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 px-3">
-          <Plane className="h-4 w-4" />
-          <span className="max-w-[150px] truncate text-sm">
-            {selectedAirport && flightInfo ? `${selectedAirport.code} - Gate ${flightInfo.gate}` : "Select Airport"}
-          </span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        {step === "country" ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Select Country
-              </DialogTitle>
-              <DialogDescription>Choose your country to see available airports</DialogDescription>
-            </DialogHeader>
+  const triggerButton = (
+    <Button variant="ghost" className="flex items-center gap-2 px-3">
+      <Plane className="h-4 w-4" />
+      <span className="max-w-[150px] truncate text-sm">
+        {selectedAirport && flightInfo ? `${selectedAirport.code} - Gate ${flightInfo.gate}` : "Select Airport"}
+      </span>
+    </Button>
+  )
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search countries..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+  const stepContent = (() => {
+    if (step === "country") {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Select Country
+            </DialogTitle>
+            <DialogDescription>Choose your country to see available airports</DialogDescription>
+          </DialogHeader>
 
-            <div className="max-h-[400px] overflow-y-auto">
-              <RadioGroup value={selectedCountry} onValueChange={handleCountrySelect}>
-                {filteredCountries.map((country) => (
-                  <div key={country} className="flex items-center space-x-3 rounded-lg border p-4">
-                    <RadioGroupItem value={country} id={country} />
-                    <Label htmlFor={country} className="flex-1 cursor-pointer">
-                      <div className="font-medium">{country}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {airportsByCountry[country].length} airport{airportsByCountry[country].length > 1 ? "s" : ""}
-                      </div>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search countries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
 
-              {filteredCountries.length === 0 && (
-                <div className="py-8 text-center text-sm text-muted-foreground">No countries found</div>
-              )}
-            </div>
-          </>
-        ) : step === "airport" ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Select Airport</DialogTitle>
-              <DialogDescription>Choose your airport in {selectedCountry}</DialogDescription>
-            </DialogHeader>
-
-            <RadioGroup value={selectedAirportTemp?.code} onValueChange={handleAirportSelect}>
-              {availableAirports.map((airport) => (
-                <div key={airport.code} className="flex items-center space-x-3 rounded-lg border p-4">
-                  <RadioGroupItem value={airport.code} id={airport.code} />
-                  <Label htmlFor={airport.code} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{airport.code}</div>
-                    <div className="text-sm text-muted-foreground">{airport.name}</div>
+          <div className="max-h-[min(400px,60vh)] overflow-y-auto">
+            <RadioGroup value={selectedCountry} onValueChange={handleCountrySelect}>
+              {filteredCountries.map((country) => (
+                <div key={country} className="flex items-center space-x-3 rounded-lg border p-4">
+                  <RadioGroupItem value={country} id={country} />
+                  <Label htmlFor={country} className="flex-1 cursor-pointer">
+                    <div className="font-medium">{country}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {airportsByCountry[country].length} airport{airportsByCountry[country].length > 1 ? "s" : ""}
+                    </div>
                   </Label>
                 </div>
               ))}
             </RadioGroup>
 
-            <Button variant="outline" className="w-full bg-transparent" onClick={() => setStep("country")}>
-              Back to Countries
-            </Button>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Plane className="h-5 w-5" />
-                Flight Information
-              </DialogTitle>
-              <DialogDescription>
-                Enter your flight details for gate delivery at {selectedAirportTemp?.code}
-              </DialogDescription>
-            </DialogHeader>
+            {filteredCountries.length === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">No countries found</div>
+            )}
+          </div>
+        </>
+      )
+    }
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="airline">Airline (Optional)</Label>
-                <Input
-                  id="airline"
-                  placeholder="e.g., American Airlines"
-                  value={flightInfoTemp.airline}
-                  onChange={(e) => setFlightInfoTemp({ ...flightInfoTemp, airline: e.target.value })}
-                />
-              </div>
+    if (step === "airport") {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle>Select Airport</DialogTitle>
+            <DialogDescription>
+              Choose your airport in {selectedCountry || "your selected country"}
+            </DialogDescription>
+          </DialogHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="flightNumber">Flight Number *</Label>
-                <Input
-                  id="flightNumber"
-                  placeholder="e.g., AA123"
-                  value={flightInfoTemp.flightNumber}
-                  onChange={(e) => setFlightInfoTemp({ ...flightInfoTemp, flightNumber: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="terminal">Terminal *</Label>
-                <Select value={flightInfoTemp.terminal} onValueChange={handleTerminalChange}>
-                  <SelectTrigger id="terminal">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedAirportTemp?.terminals.map((terminal) => (
-                      <SelectItem key={terminal.id} value={terminal.id}>
-                        {terminal.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gate">Gate *</Label>
-                <Select
-                  value={flightInfoTemp.gate}
-                  onValueChange={(value) => setFlightInfoTemp({ ...flightInfoTemp, gate: value })}
-                >
-                  <SelectTrigger id="gate">
-                    <SelectValue placeholder="Select gate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedTerminal?.gates.map((gate) => (
-                      <SelectItem key={gate} value={gate}>
-                        Gate {gate}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="boardingTime" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Boarding Time *
+          <RadioGroup value={selectedAirportTemp?.code} onValueChange={handleAirportSelect}>
+            {availableAirports.map((airport) => (
+              <div key={airport.code} className="flex items-center space-x-3 rounded-lg border p-4">
+                <RadioGroupItem value={airport.code} id={airport.code} />
+                <Label htmlFor={airport.code} className="flex-1 cursor-pointer">
+                  <div className="font-medium">{airport.code}</div>
+                  <div className="text-sm text-muted-foreground">{airport.name}</div>
                 </Label>
-                <Input
-                  id="boardingTime"
-                  type="time"
-                  value={flightInfoTemp.boardingTime}
-                  onChange={(e) => handleBoardingTimeChange(e.target.value)}
-                />
               </div>
+            ))}
+          </RadioGroup>
 
-              {timeWarning && (
-                <Alert variant="destructive">
-                  <AlertDescription>{timeWarning}</AlertDescription>
-                </Alert>
-              )}
+          <Button variant="outline" className="w-full bg-transparent" onClick={() => setStep("country")}>
+            Back to Countries
+          </Button>
+        </>
+      )
+    }
 
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setStep("airport")}>
-                  Back
-                </Button>
-                <Button className="flex-1" onClick={handleConfirm} disabled={!isValid}>
-                  Confirm
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plane className="h-5 w-5" />
+            Flight Information
+          </DialogTitle>
+          <DialogDescription>
+            Enter your flight details for gate delivery at {selectedAirportTemp?.code}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="airline">Airline (Optional)</Label>
+            <Input
+              id="airline"
+              placeholder="e.g., American Airlines"
+              value={flightInfoTemp.airline}
+              onChange={(e) => setFlightInfoTemp({ ...flightInfoTemp, airline: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="flightNumber">Flight Number *</Label>
+            <Input
+              id="flightNumber"
+              placeholder="e.g., AA123"
+              value={flightInfoTemp.flightNumber}
+              onChange={(e) => setFlightInfoTemp({ ...flightInfoTemp, flightNumber: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="terminal">Terminal *</Label>
+            <Select value={flightInfoTemp.terminal} onValueChange={handleTerminalChange}>
+              <SelectTrigger id="terminal">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedAirportTemp?.terminals.map((terminal) => (
+                  <SelectItem key={terminal.id} value={terminal.id}>
+                    {terminal.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gate">Gate *</Label>
+            <Select
+              value={flightInfoTemp.gate}
+              onValueChange={(value) => setFlightInfoTemp({ ...flightInfoTemp, gate: value })}
+            >
+              <SelectTrigger id="gate">
+                <SelectValue placeholder="Select gate" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedTerminal?.gates.map((gate) => (
+                  <SelectItem key={gate} value={gate}>
+                    Gate {gate}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="boardingTime" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Boarding Time *
+            </Label>
+            <Input
+              id="boardingTime"
+              type="time"
+              value={flightInfoTemp.boardingTime}
+              onChange={(e) => handleBoardingTimeChange(e.target.value)}
+            />
+          </div>
+
+          {timeWarning && (
+            <Alert variant="destructive">
+              <AlertDescription>{timeWarning}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setStep("airport")}>
+              Back
+            </Button>
+            <Button className="flex-1" onClick={handleConfirm} disabled={!isValid}>
+              Confirm
+            </Button>
+          </div>
+        </div>
+      </>
+    )
+  })()
+
+  const content = (
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+      {stepContent}
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+        <DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
+        <DrawerContent className="max-h-[90vh] overflow-y-auto px-4 pb-6 pt-4">
+          {content}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        {content}
       </DialogContent>
     </Dialog>
   )
