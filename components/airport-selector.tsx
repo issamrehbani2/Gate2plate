@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactElement } from "react"
 import { Plane, Clock, Globe, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +22,11 @@ import { airportsByCountry } from "@/lib/data"
 import { useLocation } from "@/contexts/location-context"
 import type { FlightInfo, Terminal } from "@/lib/types"
 
-export function AirportSelector() {
+interface AirportSelectorProps {
+  trigger?: ReactElement
+}
+
+export function AirportSelector({ trigger }: AirportSelectorProps = {}) {
   const { selectedAirport, setSelectedAirport, flightInfo, setFlightInfo } = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<"country" | "airport" | "flight">("country")
@@ -113,7 +117,7 @@ export function AirportSelector() {
 
   const availableAirports = selectedCountry ? airportsByCountry[selectedCountry] || [] : []
 
-  const triggerButton = (
+  const defaultTrigger = (
     <Button variant="ghost" className="flex items-center gap-2 px-3">
       <Plane className="h-4 w-4" />
       <span className="max-w-[150px] truncate text-sm">
@@ -121,6 +125,8 @@ export function AirportSelector() {
       </span>
     </Button>
   )
+
+  const triggerButton = trigger ?? defaultTrigger
 
   const stepContent = (() => {
     if (step === "country") {
