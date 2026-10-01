@@ -10,9 +10,8 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FoodHub - Order Your Favorite Meals",
-  description: "Browse restaurants, order delicious food, and track your orders",
-  generator: "v0.app",
+  title: "Gate2Plate – Airport Food Delivered to Your Gate",
+  description: "Order from airport restaurants and get your meal delivered to your departure gate before boarding.",
   icons: {
     icon: [
       {
